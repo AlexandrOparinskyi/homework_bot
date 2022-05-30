@@ -101,7 +101,9 @@ def main():
             homework = check_response(response)[0]
             if len(homework) != 0:
                 message = parse_status(homework)
-                send_message(bot, message)
+                if old_message != message:
+                    send_message(bot, message)
+                old_message = message
                 time.sleep(RETRY_TIME)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
