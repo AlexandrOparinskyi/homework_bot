@@ -107,7 +107,7 @@ def main():
                 time.sleep(RETRY_TIME)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            if not response['homeworks']:
+            if response['homeworks'] is None:
                 send_message(bot, message)
             time.sleep(RETRY_TIME)
         else:
