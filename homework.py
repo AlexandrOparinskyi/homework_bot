@@ -24,12 +24,12 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot, message):
-    """Отправка сообщения"""
+    """Отправка сообщения."""
     bot.send_message(TELEGRAM_CHAT_ID, message)
 
 
 def get_api_answer(current_timestamp):
-    """Запрос к эндпоинту API"""
+    """Запрос к эндпоинту API."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     return requests.get(
@@ -40,12 +40,12 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """Вывод списка работ"""
+    """Вывод списка работ."""
     return response['homeworks']
 
 
 def parse_status(homework):
-    """Создание нужного сообщения"""
+    """Создание нужного сообщения."""
     homework_name = homework[0].get('homework_name')
     homework_status = homework[0].get('status')
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -53,7 +53,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """Проверка токенов и id чата"""
+    """Проверка токенов и id чата."""
     if (PRACTICUM_TOKEN is not None
             and TELEGRAM_TOKEN is not None
             and TELEGRAM_CHAT_ID is not None):
