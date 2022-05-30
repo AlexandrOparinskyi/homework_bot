@@ -19,7 +19,7 @@ PRACTICUM_TOKEN = os.getenv('P_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TG_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('CHAT_ID')
 
-RETRY_TIME = 600
+RETRY_TIME = 3600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -40,7 +40,7 @@ def send_message(bot, message):
 def get_api_answer(current_timestamp):
     """Запрос к эндпоинту API."""
     timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
+    params = {'from_date': 0}
     response = requests.get(
         url=ENDPOINT,
         headers=HEADERS,
@@ -65,8 +65,8 @@ def check_response(response):
 
 def parse_status(homework):
     """Создание нужного сообщения."""
-    homework_name = homework.get('homework_name')
-    homework_status = homework.get('status')
+    homework_name = homework[0]['homework_name']
+    homework_status = homework[0]['status']
     verdict = HOMEWORK_STATUSES[homework_status]
     if ('approved' in homework_status
             or 'reviewing' in homework_status
@@ -100,7 +100,7 @@ def main():
             response = get_api_answer(current_timestamp)
             homework = check_response(response)
             if len(homework) != 0:
-                message = parse_status(homework)[0]
+                message = parse_status(homework)
                 send_message(bot, message)
                 time.sleep(RETRY_TIME)
         except Exception as error:
