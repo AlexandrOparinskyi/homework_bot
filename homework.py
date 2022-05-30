@@ -65,8 +65,8 @@ def check_response(response):
 
 def parse_status(homework):
     """Создание нужного сообщения."""
-    homework_name = homework[0]['homework_name']
-    homework_status = homework[0]['status']
+    homework_name = homework['homework_name']
+    homework_status = homework['status']
     verdict = HOMEWORK_STATUSES[homework_status]
     if ('approved' in homework_status
             or 'reviewing' in homework_status
@@ -98,7 +98,7 @@ def main():
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            homework = check_response(response)
+            homework = check_response(response)[0]
             if len(homework) != 0:
                 message = parse_status(homework)
                 send_message(bot, message)
