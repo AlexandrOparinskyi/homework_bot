@@ -1,10 +1,11 @@
-import os
 import logging
+import os
+import time
+from http import HTTPStatus
 
-from dotenv import load_dotenv
 import requests
 import telegram
-import time
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -39,27 +40,20 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     """Запрос к эндпоинту API."""
-    timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
     response = requests.get(
         url=ENDPOINT,
         headers=HEADERS,
-        params=params
+        params={'from_date': current_timestamp}
     )
-    if response.status_code == 200:
+    if response.status_code == HTTPStatus.OK:
         return response.json()
-    else:
-        logging.error('Нет ответа от API')
-        raise TypeError('Нет ответа от API')
+    raise TypeError('Нет ответа от API')
 
 
 def check_response(response):
     """Вывод списка работ."""
     if type(response['homeworks']) != list:
         raise TypeError('Передается не тот тип')
-    if not response['homeworks']:
-        logging.error('Список homework пустой')
-        raise TypeError('Обновлений нет')
     return response['homeworks']
 
 
@@ -68,51 +62,43 @@ def parse_status(homework):
     homework_name = homework['homework_name']
     homework_status = homework['status']
     verdict = HOMEWORK_STATUSES[homework_status]
-    if ('approved' in homework_status
-            or 'reviewing' in homework_status
-            or 'rejected' in homework_status):
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    else:
-        logging.error('Недокументированный статус домашней работы')
-        raise TypeError('Отсутствуют нужные элементы')
+    for work in HOMEWORK_STATUSES.keys():
+        if work in homework_status:
+            return (f'Изменился статус проверки '
+                    f'работы "{homework_name}". {verdict}')
+    logging.error('Недокументированный статус домашней работы')
+    raise TypeError('Отсутствуют нужные элементы')
 
 
 def check_tokens():
     """Проверка токенов и id чата."""
-    if (PRACTICUM_TOKEN is not None
-            and TELEGRAM_TOKEN is not None
-            and TELEGRAM_CHAT_ID is not None):
-        return True
-    else:
-        return False
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def main():
     """Основная логика работы бота."""
-    if check_tokens() is True:
-        bot = telegram.Bot(token=TELEGRAM_TOKEN)
-        current_timestamp = int(time.time())
-    else:
+    if not check_tokens():
         logging.critical('Отсутствует токен, либо id чата')
         raise TypeError('Отсутствие необходимых данных')
+    else:
+        bot = telegram.Bot(token=TELEGRAM_TOKEN)
+        current_timestamp = 0
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            homework = check_response(response)[0]
-            if len(homework) != 0:
+            if not response.get('homeworks'):
+                logging.error('Список homeworks пустой')
+            if len(response['homeworks']) != 0:
+                homework = check_response(response)[0]
                 message = parse_status(homework)
-                if old_message != message:
-                    send_message(bot, message)
-                old_message = message
-                time.sleep(RETRY_TIME)
+                send_message(bot, message)
+                current_timestamp = homework.get('current_date')
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            if response['homeworks'] is None:
-                send_message(bot, message)
-            time.sleep(RETRY_TIME)
+            send_message(bot, message)
         else:
             logging.error('Сообщение не отправлено')
-            time.sleep(RETRY_TIME)
+        time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
