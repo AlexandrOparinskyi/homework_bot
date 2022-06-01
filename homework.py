@@ -20,7 +20,7 @@ PRACTICUM_TOKEN = os.getenv('P_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TG_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('CHAT_ID')
 
-RETRY_TIME = 1800
+RETRY_TIME = 10
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -80,19 +80,18 @@ def main():
     if not check_tokens():
         logging.critical('Отсутствует токен, либо id чата')
         raise TypeError('Отсутствие необходимых данных')
-    else:
-        bot = telegram.Bot(token=TELEGRAM_TOKEN)
-        current_timestamp = 0
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    current_timestamp = 0
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            if not response.get('homeworks'):
-                logging.error('Список homeworks пустой')
             if len(response['homeworks']) != 0:
                 homework = check_response(response)[0]
                 message = parse_status(homework)
                 send_message(bot, message)
-                current_timestamp = response['current_date']
+                current_timestamp = (response['current_date']
+                                     or int(time.time()))
+            logging.error('Список homeworks пустой')
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
